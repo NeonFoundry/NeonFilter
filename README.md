@@ -1,3 +1,7 @@
+![GitHub release](https://img.shields.io/github/v/release/NeonFoundry/NeonFilter?style=for-the-badge\&color=FF06B5)
+![License](https://img.shields.io/github/license/NeonFoundry/NeonFilter?style=for-the-badge)
+
+
 # Neon Filter — CRT
 
 A build-free Chrome extension that puts scanlines, RGB phosphor texture, a soft glow, and curved-screen shading over the entire webpage viewport. The toolbar popup has a global power switch and a live intensity slider. Settings persist locally across tabs and browser restarts. Starts switched off.
