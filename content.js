@@ -78,7 +78,8 @@
       if (!selected?.isConnected) return;
       const rect = selected.getBoundingClientRect();
       box.style.cssText = `left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;`;
-      hint.textContent = `Click to filter all <${selected.localName}> elements. Esc cancels. ArrowUp selects parent.`;
+      const idTarget = selected.localName === "div" && selected.id ? `#${selected.id}` : `<${selected.localName}>`;
+      hint.textContent = `Click to filter ${idTarget}. Esc cancels. ArrowUp selects parent.`;
     };
     const move = event => {
       if (!(event.target instanceof Element) || event.target === picker) return;
@@ -102,6 +103,7 @@
       if (!selected && event.target instanceof Element) selected = event.target;
       if (!selected?.isConnected || selected === picker) return;
       const chosenTarget = { url: location.href.split("#")[0], tagName: selected.localName };
+      if (selected.localName === "div" && selected.id) chosenTarget.id = selected.id;
       try {
         const result = await chrome.runtime.sendMessage({ type: "neon-update-targets", change: { action: "addType", ...chosenTarget } });
         if (!result?.ok) throw new Error("Couldn't save type");

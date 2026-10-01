@@ -57,6 +57,23 @@ test('migrates exact-page targets to a site and deduplicates picks across routes
   assert.equal(targets.selector(toggled, 'https://example.test/c'), '');
 });
 
+test('div ids target the specific element and divs without ids still target all divs', () => {
+  let state = targets.normalize();
+  state = targets.update({ targeting: state }, { action: 'addType', url: 'https://example.test/a', tagName: 'div', id: 'app-shell' });
+  state = targets.update({ targeting: state }, { action: 'addType', url: 'https://example.test/b', tagName: 'div' });
+  state = targets.update({ targeting: state }, { action: 'addType', url: 'https://example.test/c', tagName: 'div', id: 'app-shell' });
+
+  assert.equal(state.types.length, 2);
+  assert.equal(state.types[0].id, 'app-shell');
+  assert.equal(state.types[1].id, undefined);
+  assert.match(targets.selector(state, 'https://example.test/page'), /#app-shell/);
+  assert.match(targets.selector(state, 'https://example.test/page'), /div/);
+
+  const toggled = targets.update({ targeting: state }, { action: 'toggleType', url: 'https://example.test/x', tagName: 'div', id: 'app-shell', enabled: false });
+  assert.doesNotMatch(targets.selector(toggled, 'https://example.test/page'), /#app-shell/);
+  assert.match(targets.selector(toggled, 'https://example.test/page'), /div/);
+});
+
 test('serializes simultaneous picker additions in the service worker', async () => {
   let listener;
   let saved = { scope: 'images' };

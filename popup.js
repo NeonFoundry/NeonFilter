@@ -93,9 +93,9 @@ function renderTargets(targeting) {
     const input = document.createElement("input");
     input.type = "checkbox";
     input.checked = entry.enabled;
-    input.addEventListener("change", () => void updateTargets({ action: "toggleType", url: entry.url, tagName: entry.tagName, enabled: input.checked }));
+    input.addEventListener("change", () => void updateTargets({ action: "toggleType", url: entry.url, tagName: entry.tagName, id: entry.id, enabled: input.checked }));
     const text = document.createElement("span");
-    text.textContent = `<${entry.tagName}>`;
+    text.textContent = entry.id ? `#${entry.id}` : `<${entry.tagName}>`;
     const page = document.createElement("small");
     try { const url = new URL(entry.url); page.textContent = url.host ? `${url.host} · All pages` : url.pathname; }
     catch { page.textContent = entry.url; }
