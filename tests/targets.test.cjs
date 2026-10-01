@@ -8,6 +8,14 @@ const context = vm.createContext({ URL, CSS: { escape: value => value } });
 vm.runInContext(source, context);
 const targets = context.NeonTargets;
 
+test('fresh target defaults leave whole page and images unchecked', () => {
+  const fresh = targets.normalize();
+  assert.equal(fresh.wholePage, false);
+  assert.equal(fresh.images, false);
+  assert.equal(fresh.types.length, 0);
+  assert.equal(targets.normalize({ scope: 'page' }).wholePage, true);
+});
+
 test('adding types is additive, deduplicates, and retains images through toggles and clearing', () => {
   let state = targets.normalize({ scope: 'images' });
   const change = (action, extras = {}) => { state = targets.update({ targeting: state }, { action, ...extras }); };
@@ -55,6 +63,16 @@ test('migrates exact-page targets to a site and deduplicates picks across routes
   assert.equal(targets.selector(migrated, 'https://other.test/c'), '');
   const toggled = targets.update({ targeting: migrated }, { action: 'toggleType', url: 'https://example.test/b', tagName: 'canvas', enabled: false });
   assert.equal(targets.selector(toggled, 'https://example.test/c'), '');
+});
+
+test('saved targeting preserves whole-page false and images do not enable the overlay', () => {
+  const saved = targets.normalize({ targeting: { wholePage: false, images: true, types: [] } });
+  assert.equal(saved.wholePage, false);
+  assert.equal(saved.images, true);
+  const updated = targets.update({ targeting: { wholePage: true, images: false, types: [] } }, { action: 'images', enabled: true });
+  assert.equal(updated.wholePage, false);
+  assert.equal(updated.images, true);
+  assert.equal(targets.selector(updated, 'https://example.test/'), ':is(img):not(:is(img) :is(img))');
 });
 
 test('div ids target the specific element and divs without ids still target all divs', () => {

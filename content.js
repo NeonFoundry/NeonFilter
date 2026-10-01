@@ -289,7 +289,7 @@
     if (!initialized) Object.assign(pendingChanges, values);
     apply(values);
   });
-  chrome.storage.local.get({ enabled: false, intensity: 65, mode: "aperture", scope: "page", target: null, targeting: null, effects: {} }).then(values => {
+  chrome.storage.local.get({ enabled: false, intensity: 65, mode: "aperture", scope: null, target: null, targeting: null, effects: {} }).then(values => {
     initialized = true;
     apply({ ...values, ...pendingChanges });
   }).catch(() => {});

@@ -204,7 +204,7 @@ pickElement.addEventListener("click", async () => {
     error.hidden = false;
   } finally { pickElement.disabled = false; }
 });
-chrome.storage.local.get({ enabled: false, intensity: 65, mode: "aperture", scope: "page", target: null, targeting: null, effects: {} }).then(settings => {
+chrome.storage.local.get({ enabled: false, intensity: 65, mode: "aperture", scope: null, target: null, targeting: null, effects: {} }).then(settings => {
   renderEnabled(settings.enabled);
   renderIntensity(settings.intensity);
   renderMode(settings.mode);

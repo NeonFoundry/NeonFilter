@@ -60,8 +60,20 @@ function setup(saved = { enabled: false, intensity: 65 }) {
   };
 }
 
-test('starts off, enables a single overlay, updates intensity, and removes it on disable', async () => {
+test('starts off and fresh defaults do not enable the whole-page overlay', async () => {
   const env = setup();
+  await Promise.resolve();
+  assert.equal(env.overlays.length, 0);
+  env.change({ enabled: true });
+  assert.equal(env.overlays.length, 0);
+  const svg = env.elements.find(element => element.tagName === 'svg');
+  const style = env.elements.find(element => element.tagName === 'style');
+  assert.equal(svg.isConnected, true);
+  assert.equal(style.textContent, '');
+});
+
+test('explicit whole-page scope enables a single overlay, updates intensity, and removes it on disable', async () => {
+  const env = setup({ enabled: false, intensity: 65, scope: 'page' });
   await Promise.resolve();
   assert.equal(env.overlays.length, 0);
   env.change({ enabled: true });
@@ -83,7 +95,7 @@ test('starts off, enables a single overlay, updates intensity, and removes it on
 });
 
 test('image scope replaces page overlay and fully cleans up when disabled', async () => {
-  const env = setup({ enabled: true, intensity: 65 });
+  const env = setup({ enabled: true, intensity: 65, scope: 'page' });
   await Promise.resolve();
   env.change({ scope: 'images' });
   assert.equal(env.overlays[0].isConnected, false);
@@ -153,7 +165,7 @@ test('images and several enabled types combine and can be toggled without deleti
 });
 
 test('restores saved settings and prevents duplicate injections', async () => {
-  const env = setup({ enabled: true, intensity: 80 });
+  const env = setup({ enabled: true, intensity: 80, scope: 'page' });
   await Promise.resolve();
   vm.runInContext(source, env.context);
   assert.equal(env.overlays.length, 1);
@@ -166,7 +178,7 @@ test('restores saved settings and prevents duplicate injections', async () => {
 });
 
 test('preserves storage changes received during initialization', async () => {
-  const env = setup({ enabled: true, intensity: 65 });
+  const env = setup({ enabled: true, intensity: 65, scope: 'page' });
   env.change({ intensity: 25 });
   await Promise.resolve();
   assert.equal(env.overlays[0].isConnected, true);
@@ -176,7 +188,7 @@ test('preserves storage changes received during initialization', async () => {
 });
 
 test('switches styles live, remembers style while off, and defaults older settings to aperture', async () => {
-  const env = setup({ enabled: true, intensity: 70 });
+  const env = setup({ enabled: true, intensity: 70, scope: 'page' });
   await Promise.resolve();
   const screen = env.overlays[0].shadow.children[1];
   assert.equal(screen['data-mode'], 'aperture');
@@ -193,10 +205,10 @@ test('switches styles live, remembers style while off, and defaults older settin
 });
 
 test('restores saved scanlines and respects mode changes during initialization', async () => {
-  const env = setup({ enabled: true, intensity: 65, mode: 'scanlines' });
+  const env = setup({ enabled: true, intensity: 65, mode: 'scanlines', scope: 'page' });
   await Promise.resolve();
   assert.equal(env.overlays[0].shadow.children[1]['data-mode'], 'scanlines');
-  const racing = setup({ enabled: true, intensity: 65, mode: 'aperture' });
+  const racing = setup({ enabled: true, intensity: 65, mode: 'aperture', scope: 'page' });
   racing.change({ mode: 'scanlines' });
   await Promise.resolve();
   assert.equal(racing.overlays[0].shadow.children[1]['data-mode'], 'scanlines');
@@ -241,7 +253,7 @@ test('motion primitives are opt-in, pause for hidden documents and reduced motio
 });
 
 test('whole-page tuning and motion flags respond live and vanish at zero intensity', async () => {
-  const env = setup({ enabled: true, effects: { spacing: 7, darkness: 90, shimmer: 50, glitch: 30, roll: 20 } });
+  const env = setup({ enabled: true, scope: 'page', effects: { spacing: 7, darkness: 90, shimmer: 50, glitch: 30, roll: 20 } });
   await Promise.resolve();
   const screen = env.overlays[0].shadow.children[1];
   assert.equal(screen.style['--spacing'], '7px');

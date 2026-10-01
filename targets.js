@@ -30,7 +30,7 @@ globalThis.NeonTargets = {
     }
     const target = settings.target;
     return {
-      wholePage: !["images", "element"].includes(settings.scope),
+      wholePage: settings.scope === "page",
       images: settings.scope === "images",
       types: target?.tagName ? [this.id(target.id)
         ? { url: this.site(target.url), tagName: target.tagName, id: this.id(target.id), enabled: true }
