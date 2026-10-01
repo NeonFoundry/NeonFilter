@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Neon Filter — CRT",
+  "version": "1.0.0",
+  "description": "Give every webpage a retro CRT screen with scanlines, phosphor texture, soft glow, and a vignette.",
+  "permissions": ["storage", "scripting", "webNavigation"],
+  "host_permissions": ["http://*/*", "https://*/*", "file:///*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Neon Filter", "default_popup": "popup.html" },
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*", "file:///*"],
+    "js": ["targets.js", "effects.js", "content.js"],
+    "run_at": "document_idle"
+  }]
+}

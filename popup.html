@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neon Filter</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="targets.js" defer></script>
+  <script src="effects.js" defer></script>
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <header><span class="mark" aria-hidden="true">▣</span><span>NEON FILTER</span><span class="edition">CRT / 01</span></header>
+  <main>
+    <div class="preview" aria-hidden="true"><div class="preview-content"><span class="signal">ANALOG SIGNAL</span><strong>Stay<br>retro.</strong><span class="frequency">640 × 480 &nbsp; / &nbsp; 60 Hz</span></div></div>
+    <div class="power-row"><div><h1>CRT display</h1><p id="status" role="status">Loading settings…</p></div><button id="power" type="button" role="switch" aria-checked="false" aria-label="CRT filter" disabled><span></span></button></div>
+    <div class="preset-row" aria-label="CRT presets">
+      <button type="button" data-preset="clean" disabled>Clean</button>
+      <button type="button" data-preset="arcade" disabled>Arcade</button>
+      <button type="button" data-preset="worn" disabled>Worn tube</button>
+    </div>
+    <details>
+      <summary>Apply to: images &amp; saved types</summary>
+    <fieldset id="scope-picker" disabled>
+      <legend>Apply to</legend>
+      <label class="target-toggle"><input id="whole-page" type="checkbox"><span>Whole page</span></label>
+      <label class="target-toggle"><input id="include-images" type="checkbox"><span>Images <small>All pages</small></span></label>
+      <div class="target-heading"><span>Saved element types</span><button id="clear-types" type="button">Clear types</button></div>
+      <div id="target-list"></div>
+      <button id="pick-element" type="button">+ Add element type</button>
+      <p id="scope-description">Images and enabled types work together.</p>
+    </fieldset>
+    </details>
+    <fieldset id="mode-picker" disabled>
+      <legend>Screen style</legend>
+      <div class="mode-options">
+        <label><input type="radio" name="mode" value="aperture" checked><span>Aperture grille</span></label>
+        <label><input type="radio" name="mode" value="scanlines"><span>Scanlines</span></label>
+      </div>
+      <p id="mode-description">Fine RGB phosphor texture.</p>
+    </fieldset>
+    <div class="slider-label"><label for="intensity">Intensity</label><output id="value" for="intensity">65%</output></div>
+    <input id="intensity" type="range" min="0" max="100" value="65" disabled>
+    <div class="range-labels"><span>SUBTLE</span><span>FULL ANALOG</span></div>
+    <details open class="cyber-panel">
+      <summary>Cyberpunk glitch</summary>
+      <label class="target-toggle"><input id="cyberpunk" type="checkbox" disabled><span>Enable cyberpunk glitch</span></label>
+      <fieldset id="cyber-controls" disabled></fieldset>
+      <p class="effects-note">Intermittent tearing and colour-split bursts. Works with your current targets and CRT tuning.</p>
+    </details>
+    <details>
+      <summary>CRT tuning</summary>
+      <fieldset id="effects-controls" disabled></fieldset>
+      <button id="reset-effects" type="button" disabled>Reset tuning</button>
+      <p class="effects-note">Motion pauses with reduced-motion settings. RGB separation applies to images/types; edge shading applies to Whole page.</p>
+    </details>
+    <p class="note">Scanlines · Phosphor · Soft glow</p>
+    <p id="error" role="alert" hidden></p>
+  </main>
+  <footer><span class="dot"></span> All tabs · Saved automatically</footer>
+  <p class="limitation">Works on webpages. Chrome internal pages and the Web Store are excluded.</p>
+</body>
+</html>
