@@ -60,7 +60,7 @@ function setup(saved = { enabled: false, intensity: 65 }) {
   };
 }
 
-test('starts off and fresh defaults do not enable the whole-page overlay', async () => {
+test('starts off and fresh defaults target images without a whole-page overlay', async () => {
   const env = setup();
   await Promise.resolve();
   assert.equal(env.overlays.length, 0);
@@ -69,7 +69,7 @@ test('starts off and fresh defaults do not enable the whole-page overlay', async
   const svg = env.elements.find(element => element.tagName === 'svg');
   const style = env.elements.find(element => element.tagName === 'style');
   assert.equal(svg.isConnected, true);
-  assert.equal(style.textContent, '');
+  assert.ok(style.textContent.startsWith(':is(img)'));
 });
 
 test('explicit whole-page scope enables a single overlay, updates intensity, and removes it on disable', async () => {

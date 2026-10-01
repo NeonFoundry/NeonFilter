@@ -8,12 +8,13 @@ const context = vm.createContext({ URL, CSS: { escape: value => value } });
 vm.runInContext(source, context);
 const targets = context.NeonTargets;
 
-test('fresh target defaults leave whole page and images unchecked', () => {
+test('fresh target defaults leave whole page unchecked and images checked', () => {
   const fresh = targets.normalize();
   assert.equal(fresh.wholePage, false);
-  assert.equal(fresh.images, false);
+  assert.equal(fresh.images, true);
   assert.equal(fresh.types.length, 0);
   assert.equal(targets.normalize({ scope: 'page' }).wholePage, true);
+  assert.equal(targets.normalize({ scope: 'page' }).images, false);
 });
 
 test('adding types is additive, deduplicates, and retains images through toggles and clearing', () => {

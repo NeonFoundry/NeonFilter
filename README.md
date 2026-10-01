@@ -21,7 +21,7 @@ Already open webpages are initialized at installation. If an existing page does 
 ## Behavior and limits
 
 - **Images** and picked element types are additive. Enable Images, then use **Add element type** as often as you like. Each pick adds its HTML tag to the saved list without replacing earlier picks. Selecting the same tag on the same page again re-enables the existing entry without creating a duplicate.
-- Fresh installs start with **Whole page** and **Images** unchecked. Turn on only the targets you want.
+- Fresh installs start with **Whole page** unchecked and **Images** checked.
 - Each saved type has an independent checkbox. Turning it off keeps it in the list; **Clear types** removes the saved list while retaining the Images setting. Choices persist across popup closure, refreshes, and browser restarts. Previous image and element-type settings are migrated automatically.
 - **Whole page** temporarily covers everything with one overlay, keeping the Images and type choices saved. Turn it off to resume those choices. Enabling Images or adding a type turns Whole page off so you can see the targeted result. The main power switch pauses all effects without clearing anything.
 - Images covers standard `<img>` elements (including `<picture>` and lazy-loaded images) in the main document. For backgrounds, canvas viewers, or other containers, click **Add element type**, hover, and click. Picking a `<canvas>` filters every canvas on that page; picking a `<div id="main">` targets `#main`, while a div without an id falls back to filtering every div. Press **Up arrow** to pick the parent type, **Enter** to confirm, or **Esc** to cancel. The picker names the target before selection.
