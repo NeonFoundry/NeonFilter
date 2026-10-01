@@ -1,6 +1,8 @@
-![GitHub release](https://img.shields.io/github/v/release/NeonFoundry/NeonFilter?style=for-the-badge\&color=FF06B5)
+![GitHub release](https://img.shields.io/github/v/release/NeonFoundry/NeonFilter?style=for-the-badge&color=FF06B5)
 ![License](https://img.shields.io/github/license/NeonFoundry/NeonFilter?style=for-the-badge)
-
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=000000)
+![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)
+![Manifest](https://img.shields.io/badge/Manifest-V3-FF06B5?style=for-the-badge&logo=googlechrome&logoColor=white)
 
 # Neon Filter — CRT
 
