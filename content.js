@@ -1,5 +1,5 @@
 (() => {
-  // Installation-time injection and declarative injection can race.
+  // Reopening the popup must not install duplicate overlays or listeners.
   if (globalThis.__neonFilterLoaded) return;
   globalThis.__neonFilterLoaded = true;
 
@@ -18,8 +18,10 @@
   let imageFilter;
   let imageStyle;
   const filterId = `neon-crt-${crypto.randomUUID()}`;
-  const pendingChanges = {};
   let initialized = false;
+  const pendingChanges = {};
+  let routeTimer;
+  let lastUrl = location.href;
   const observer = new MutationObserver(() => {
     if (!enabled) return;
     if (!targeting.wholePage) mountImages();
@@ -133,6 +135,16 @@
   }
 
   chrome.runtime.onMessage.addListener((message, sender, respond) => {
+    if (message.type === "neon-get-state" || message.type === "neon-apply") {
+      if (message.type === "neon-apply") {
+        if (!initialized) Object.assign(pendingChanges, message.values);
+        else apply(message.values);
+      }
+      ready.then(() => {
+        respond({ ok: true, settings: { enabled, intensity, mode, effects, targeting } });
+      });
+      return true;
+    }
     if (message.type === "neon-navigation") {
       cancelPicker?.();
       render();
@@ -219,6 +231,14 @@
 
   function render() {
     observer.disconnect();
+    clearInterval(routeTimer);
+    routeTimer = undefined;
+    if (enabled) routeTimer = setInterval(() => {
+      if (location.href === lastUrl) return;
+      lastUrl = location.href;
+      cancelPicker?.();
+      render();
+    }, 500);
     if (!enabled) {
       host?.remove();
       imageStyle?.remove();
@@ -276,23 +296,12 @@
     render();
   }
 
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local") return;
-    const values = {};
-    if (changes.enabled) values.enabled = changes.enabled.newValue ?? false;
-    if (changes.intensity) values.intensity = changes.intensity.newValue ?? 65;
-    if (changes.mode) values.mode = changes.mode.newValue ?? "aperture";
-    if (changes.effects) values.effects = changes.effects.newValue ?? {};
-    if (changes.scope) values.scope = changes.scope.newValue ?? "page";
-    if (changes.target) values.target = changes.target.newValue ?? null;
-    if (changes.targeting) values.targeting = changes.targeting.newValue ?? { wholePage: false, images: false, types: [] };
-    if (!initialized) Object.assign(pendingChanges, values);
-    apply(values);
-  });
-  chrome.storage.local.get({ enabled: false, intensity: 65, mode: "aperture", scope: null, target: null, targeting: null, effects: {} }).then(values => {
+  // Preferences seed a newly invoked document, but power is always per document.
+  // Live updates arrive only from this tab's popup, never from shared storage.
+  const ready = chrome.storage.local.get({ intensity: 65, mode: "aperture", scope: null, target: null, targeting: null, effects: {} }).then(values => {
     initialized = true;
-    apply({ ...values, ...pendingChanges });
-  }).catch(() => {});
+    apply({ ...values, enabled: false, ...pendingChanges });
+  }).catch(() => { initialized = true; apply(pendingChanges); });
 
   // Restore cached documents and refresh absolute SVG references after route changes.
   window.addEventListener("pageshow", () => render());

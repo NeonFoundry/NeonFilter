@@ -1,3 +1,19 @@
+let currentTabId;
+async function sendToTab(message) {
+  if (currentTabId === undefined) throw new Error("No active tab");
+  const response = await chrome.tabs.sendMessage(currentTabId, message, { frameId: 0 });
+  if (!response?.ok) throw new Error("Page unavailable");
+  return response;
+}
+async function saveSettings(values) {
+  const { enabled, ...preferences } = values;
+  // Start both operations before the popup can close during a slider adjustment.
+  await Promise.all([
+    sendToTab({ type: "neon-apply", values }),
+    Object.keys(preferences).length ? chrome.storage.local.set(preferences) : Promise.resolve()
+  ]);
+}
+
 const power = document.querySelector("#power");
 const slider = document.querySelector("#intensity");
 const value = document.querySelector("#value");
@@ -37,7 +53,7 @@ for (const [key, labelText] of Object.entries(effectLabels)) {
   input.step = key === "spacing" ? 0.5 : 1;
   input.addEventListener("input", () => {
     renderEffects({ ...savedEffects, [key]: Number(input.value) });
-    chrome.storage.local.set({ effects: savedEffects }).catch(showError);
+    saveSettings({ effects: savedEffects }).catch(showError);
   });
   (key.startsWith("cyber") ? cyberControls : effectsControls).append(row, input);
 }
@@ -46,7 +62,7 @@ cyberToggle.addEventListener("change", async () => {
   cyberToggle.disabled = true;
   try {
     const effects = { ...savedEffects, cyberpunk: cyberToggle.checked };
-    await chrome.storage.local.set({ effects });
+    await saveSettings({ effects });
     renderEffects(effects);
     error.hidden = true;
   } catch { renderEffects(savedEffects); showError(); }
@@ -74,11 +90,11 @@ function renderEffects(values) {
 for (const button of document.querySelectorAll("[data-preset]")) button.addEventListener("click", async () => {
   const effects = { ...savedEffects, ...NeonEffects.presets[button.dataset.preset] };
   const mode = button.dataset.preset === "clean" ? "aperture" : "scanlines";
-  try { await chrome.storage.local.set({ effects, mode }); renderEffects(effects); renderMode(mode); error.hidden = true; }
+  try { await saveSettings({ effects, mode }); renderEffects(effects); renderMode(mode); error.hidden = true; }
   catch { showError(); }
 });
 resetEffects.addEventListener("click", async () => {
-  try { await chrome.storage.local.set({ effects: NeonEffects.defaults }); renderEffects(NeonEffects.defaults); error.hidden = true; }
+  try { await saveSettings({ effects: NeonEffects.defaults }); renderEffects(NeonEffects.defaults); error.hidden = true; }
   catch { showError(); }
 });
 
@@ -113,7 +129,7 @@ function renderTargets(targeting) {
   clearTypes.disabled = !targeting.types.length;
   document.querySelector("#scope-description").textContent = targeting.wholePage
     ? "Whole page is on. Your image and type choices stay saved."
-    : "Images and enabled types work together. Types stay on across their site.";
+    : "Images and enabled types work together. Saved types are available across their site when you activate a tab.";
 }
 
 async function updateTargets(change) {
@@ -121,6 +137,7 @@ async function updateTargets(change) {
   try {
     const result = await chrome.runtime.sendMessage({ type: "neon-update-targets", change });
     if (!result?.ok) throw new Error("Couldn't save targets");
+    await sendToTab({ type: "neon-apply", values: { targeting: result.targeting } });
     renderTargets(result.targeting);
     error.hidden = true;
   } catch { renderTargets(savedTargeting); showError(); }
@@ -143,7 +160,7 @@ function renderMode(mode) {
 function renderEnabled(enabled) {
   power.setAttribute("aria-checked", String(enabled));
   document.body.dataset.enabled = String(enabled);
-  status.textContent = enabled ? "The analog era is on." : "Ready when you are.";
+  status.textContent = enabled ? "On for this tab." : "Ready for this tab.";
 }
 function renderIntensity(intensity) {
   slider.value = intensity;
@@ -159,7 +176,7 @@ power.addEventListener("click", async () => {
   const enabled = power.getAttribute("aria-checked") !== "true";
   power.disabled = true;
   try {
-    await chrome.storage.local.set({ enabled });
+    await saveSettings({ enabled });
     renderEnabled(enabled);
     error.hidden = true;
   } catch { showError(); }
@@ -169,14 +186,14 @@ slider.addEventListener("input", () => {
   const intensity = Number(slider.value);
   renderIntensity(intensity);
   // Write immediately so closing the popup cannot discard a pending adjustment.
-  chrome.storage.local.set({ intensity }).catch(showError);
+  saveSettings({ intensity }).catch(showError);
 });
 modePicker.addEventListener("change", async (event) => {
   const mode = event.target.value;
   if (mode !== "aperture" && mode !== "scanlines") return;
   modePicker.disabled = true;
   try {
-    await chrome.storage.local.set({ mode });
+    await saveSettings({ mode });
     renderMode(mode);
     error.hidden = true;
   } catch {
@@ -184,19 +201,10 @@ modePicker.addEventListener("change", async (event) => {
     showError();
   } finally { modePicker.disabled = false; }
 });
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local") return;
-  if (changes.enabled) renderEnabled(changes.enabled.newValue ?? false);
-  if (changes.intensity) renderIntensity(changes.intensity.newValue ?? 65);
-  if (changes.mode) renderMode(changes.mode.newValue ?? "aperture");
-  if (changes.effects) renderEffects(changes.effects.newValue ?? {});
-  if (changes.targeting) renderTargets(NeonTargets.normalize({ targeting: changes.targeting.newValue }));
-});
 pickElement.addEventListener("click", async () => {
   pickElement.disabled = true;
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const response = await chrome.tabs.sendMessage(tab.id, { type: "neon-pick-element" }, { frameId: 0 });
+    const response = await sendToTab({ type: "neon-pick-element" });
     if (!response?.ok) throw new Error("Picker unavailable");
     window.close();
   } catch {
@@ -204,7 +212,14 @@ pickElement.addEventListener("click", async () => {
     error.hidden = false;
   } finally { pickElement.disabled = false; }
 });
-chrome.storage.local.get({ enabled: false, intensity: 65, mode: "aperture", scope: null, target: null, targeting: null, effects: {} }).then(settings => {
+async function initialize() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id === undefined) throw new Error("No active tab");
+  currentTabId = tab.id;
+  await chrome.scripting.executeScript({
+    target: { tabId: currentTabId }, files: ["targets.js", "effects.js", "content.js"]
+  });
+  const { settings } = await sendToTab({ type: "neon-get-state" });
   renderEnabled(settings.enabled);
   renderIntensity(settings.intensity);
   renderMode(settings.mode);
@@ -218,4 +233,9 @@ chrome.storage.local.get({ enabled: false, intensity: 65, mode: "aperture", scop
   resetEffects.disabled = false;
   cyberToggle.disabled = false;
   for (const button of document.querySelectorAll("[data-preset]")) button.disabled = false;
-}).catch(showError);
+}
+initialize().catch(() => {
+  status.textContent = "Unavailable on this page.";
+  error.textContent = "Open a regular webpage and reopen Neon Filter. Chrome internal pages, the Web Store, and protected viewers cannot be filtered.";
+  error.hidden = false;
+});

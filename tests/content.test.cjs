@@ -4,7 +4,7 @@ const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const source = ['targets.js', 'effects.js', 'content.js'].map(file => readFileSync(require('node:path').join(__dirname, '..', file), 'utf8')).join('\n');
 
-function setup(saved = { enabled: false, intensity: 65 }) {
+function setup(saved = { enabled: false, intensity: 65 }, activate = saved.enabled) {
   const listeners = [];
   const events = {};
   const overlays = [];
@@ -12,6 +12,7 @@ function setup(saved = { enabled: false, intensity: 65 }) {
   let messageListener;
   const motion = { matches: false, addEventListener(name, fn) { this.change = fn; } };
   let observer;
+  let routeCheck;
   class Element {
     constructor() {
       this.children = [];
@@ -30,6 +31,8 @@ function setup(saved = { enabled: false, intensity: 65 }) {
   const root = new Element();
   const context = vm.createContext({
     URL,
+    setInterval(fn) { routeCheck = fn; return 1; },
+    clearInterval() { routeCheck = undefined; },
     matchMedia: () => motion,
     window: { addEventListener(name, fn) { events[name] = fn; } },
     crypto: { randomUUID: () => 'test-filter' },
@@ -52,11 +55,16 @@ function setup(saved = { enabled: false, intensity: 65 }) {
     } }
   });
   vm.runInContext(source, context);
+  const send = values => messageListener({ type: 'neon-apply', values }, {}, () => {});
+  if (activate) send({ enabled: true });
   return {
+    storageChange(values) { listeners.forEach(fn => fn(Object.fromEntries(Object.entries(values).map(([key, newValue]) => [key, { newValue }])), 'local')); },
+    route(url) { context.location.href = url; routeCheck?.(); },
+    send(message) { return new Promise(resolve => messageListener(message, {}, resolve)); },
     overlays, events, context, elements, motion,
     navigate(url) { context.location.href = url; messageListener({ type: 'neon-navigation' }, {}, () => {}); },
     get observer() { return observer; },
-    change(values, area = 'local') { listeners.forEach(fn => fn(Object.fromEntries(Object.entries(values).map(([key, newValue]) => [key, { newValue }])), area)); }
+    change(values, area = 'local') { if (area === 'local') send(values); }
   };
 }
 
@@ -177,7 +185,7 @@ test('restores saved settings and prevents duplicate injections', async () => {
   assert.equal(env.overlays[0].open, true);
 });
 
-test('preserves storage changes received during initialization', async () => {
+test('preserves tab messages received during initialization', async () => {
   const env = setup({ enabled: true, intensity: 65, scope: 'page' });
   env.change({ intensity: 25 });
   await Promise.resolve();
@@ -298,4 +306,32 @@ test('cyberpunk tearing is additive, opt-in, and removed for reduced motion or z
   assert.equal(screen['data-cyber-motion'], 'false');
   env.change({ effects: { ...tuning, cyberpunk: false } });
   assert.equal(screen['data-cyber'], 'false');
+});
+
+
+test('shared storage changes cannot enable or change another tab', async () => {
+  const first = setup({ enabled: true, scope: 'page', intensity: 65 });
+  const second = setup({ enabled: false, scope: 'page', intensity: 65 });
+  await Promise.resolve();
+  second.storageChange({ enabled: true, intensity: 15 });
+  first.change({ intensity: 30 });
+  assert.equal(second.overlays.length, 0);
+  assert.equal((await second.send({ type: 'neon-get-state' })).settings.intensity, 65);
+  assert.equal((await first.send({ type: 'neon-get-state' })).settings.intensity, 30);
+});
+
+test('legacy global power does not turn on a newly injected document', async () => {
+  const env = setup({ enabled: true, scope: 'page', intensity: 80 }, false);
+  const { settings } = await env.send({ type: 'neon-get-state' });
+  assert.equal(settings.enabled, false);
+  assert.equal(settings.intensity, 80);
+  assert.equal(env.overlays.length, 0);
+});
+
+test('route polling refreshes pushState SVG references without navigation permission', async () => {
+  const env = setup({ enabled: true, scope: 'images' });
+  await Promise.resolve();
+  env.route('https://example.test/new-route');
+  const style = env.elements.find(element => element.tagName === 'style');
+  assert.match(style.textContent, /new-route#neon-crt-test-filter/);
 });

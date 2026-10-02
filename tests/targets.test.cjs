@@ -110,5 +110,5 @@ test('serializes simultaneous picker additions in the service worker', async () 
   assert.ok(responses.every(response => response.ok));
   assert.equal(saved.targeting.types.length, 2);
   assert.equal(saved.targeting.images, true);
-  assert.equal(saved.enabled, true);
+  assert.equal(saved.enabled, undefined);
 });
